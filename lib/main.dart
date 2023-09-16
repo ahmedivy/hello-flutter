@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,7 +9,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -30,7 +31,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _selectedColor = 'red';
+  late Future<SharedPreferences> _prefs;
+  late String _selectedColor;
 
   final Map<String, Color> _colorMap = {
     'red': Colors.red,
@@ -41,9 +43,23 @@ class _MyHomePageState extends State<MyHomePage> {
     'orange': Colors.orange,
   };
 
-  void _changeColor(String color) {
+  Future<void> _changeColor(String color) async {
+    final SharedPreferences prefs = await _prefs;
+
+    await prefs.setString('color', color);
     setState(() {
       _selectedColor = color;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _prefs = SharedPreferences.getInstance();
+    _prefs.then((SharedPreferences prefs) {
+      setState(() {
+        _selectedColor = prefs.getString('color') ?? 'red';
+      });
     });
   }
 
@@ -56,23 +72,22 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: _colorMap.keys.map((color) {
-              return Container(
-                  margin: const EdgeInsets.all(10),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _colorMap[color],
-                      fixedSize: const Size.fromHeight(80),
-                    ),
-                    onPressed: () => _changeColor(color),
-                    child: null,
-                  ));
-            }).toList(),
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: _colorMap.keys.map((color) {
+            return Container(
+              margin: const EdgeInsets.all(10),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _colorMap[color],
+                  fixedSize: const Size.fromHeight(80),
+                ),
+                onPressed: () => _changeColor(color),
+                child: null,
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
